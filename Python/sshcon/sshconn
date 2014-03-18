@@ -1,0 +1,37 @@
+#!/bin/bash
+
+relative_dir=`dirname $0`
+work_path=`cd $relative_dir;pwd`
+echo "work_path: $work_path"
+
+_server_part=$1
+
+function usage()
+{
+	echo -e "\nUsage:"
+	echo -e "\t$0 server_name\n"
+}
+
+if [ "x$_server_part" == "x" ]; then
+	usage
+	exit
+fi
+
+cd $work_path
+command="awk '{if(\$1~/$_server_part/) print \$0}' .servers"
+server_num=`echo -e $command|sh|wc -l`
+
+if [ $server_num -gt 1 ]; then
+	echo "servers > 2"
+else
+	_server=`eval $command`
+
+	server_name=`echo $_server | cut -d ' ' -f 1`
+	server_ip=`echo $_server | cut -d ' ' -f 2`
+	server_port=`echo $_server | cut -d ' ' -f 3`
+	server_user=`echo $_server | cut -d ' ' -f 4`
+	server_passwd=`echo $_server | cut -d ' ' -f 5`
+fi
+
+echo "connect to server [$server_name] ..."
+./doconn $server_ip $server_port $server_user $server_passwd

@@ -1,0 +1,16 @@
+#!/usr/bin/python
+# encoding=utf-8
+
+import sys
+from sshconlib import *
+
+#conf_path = 
+#if len(argv) > 1 :
+#	server_desc = argv[1]
+
+#######################################################################################################
+# 1. 先解密scfile，然后在解密的字符串里搜索server_desc
+
+
+
+

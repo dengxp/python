@@ -1,0 +1,360 @@
+#!/usr/bin/python
+# encoding=utf-8
+
+import sys, os, getpass, struct
+			
+#######################################################################################################
+# 检查密码是否符合要求
+#######################################################################################################
+def check_password(password) :
+	
+	if len(password) >= 6:
+		return True
+	else:
+		return False
+	
+#######################################################################################################
+# 检查文件是否存在
+#######################################################################################################
+def check_file_exists(filename) :
+	if os.path.isfile(filename) :
+		return True
+	else:
+		return False
+
+#######################################################################################################
+# 检查服务器配置信息是否正确
+# 输入参数: 包含服务器配置的list参数
+# 返回值: bool
+#######################################################################################################
+def check_server_properties(properties) :
+	
+	if len(properties) <> 5 :
+		return False
+		
+	return True
+
+
+#######################################################################################################
+# 加密字符串
+# 输入参数: 要加密的字符串
+# 返回值: String，加密后的字符串
+#######################################################################################################
+def encode_string(str, key) :
+	if len(key) < 1 :
+		print 'The key is null.'
+		return -1
+		
+	key_index = 0
+	key_bytes = bytearray(key)
+	
+	# 定义加密字符串
+	str_encode = ''
+	
+	# 字符串转换成字节数组
+	bytes = bytearray(str)
+	
+	# 按字节加密
+	for b in bytes:
+		b_encode = (b + key_bytes[key_index]) % 256
+		str_encode += struct.pack('B', b_encode)
+		key_index = (key_index + 1) % len(key_bytes)
+	
+	# 返回加密字符串
+	return str_encode
+		
+#######################################################################################################
+# 解密字符串
+# 输入参数: 要解密的字符串
+# 返回值: String，解密后的字符串
+#######################################################################################################
+def decode_string(str, key) :
+	
+	if len(key) < 1 :
+		print 'The key is null.'
+		return -1
+				
+	key_index = 0
+	key_bytes = bytearray(key)
+			
+	# 定义解密字符串
+	str_decode = ''
+	# 字符串转换成字节数组
+	bytes = bytearray(str)
+	for b in bytes:
+		b_decode = (b + 256 - key_bytes[key_index]) % 256
+		str_decode += struct.pack('B', b_decode)
+		key_index = (key_index + 1) % len(key_bytes)
+		# 返回解密字符串
+	return str_decode
+
+#######################################################################################################
+# 加密scfile_decode文件
+# 输入参数: fn_decode: 待加密的文件名
+# 返回值: bool，解密是否成功
+#######################################################################################################
+
+def encode_scfile(fn_decode, fn_encode, key) :
+	if not check_file_exists(fn_decode) :
+		print 'File ' + fn_decode + 'does not exists!'
+		return -1
+		
+	if len(key) < 1 :
+		print 'The key is null.'
+		return -2
+		
+	h_decode = open(fn_decode, 'r')
+	h_encode = open(fn_encode, 'w')
+	
+	str_decode = h_decode.read()
+	str_encode = encode_string(str_decode, key)
+	h_encode.write(str_encode)
+			
+#######################################################################################################
+# 解密scfile文件
+# 输入参数: fn_encode: 待解密的文件名，fn_decode: 解密后的文件名
+# 返回值: bool，解密是否成功
+#######################################################################################################
+def decode_scfile(fn_encode, fn_decode, key) :
+	if not check_file_exists(fn_encode) :
+		print 'File ' + fn_encode + 'does not exists!'
+		return -1
+		
+	if len(key) < 1 :
+		print 'The key is null.'
+		return -2
+			
+	fh_encode = open(fn_encode, 'r')
+	str_encode= fh_encode.read()
+	str_decode = decode_string(str_encode, key)
+	str_decode_list = str_decode.split('\n')
+	if str_decode_list[0] <> scfile_header :
+		print 'File ' + fn_encode + 'decode Error!'
+		return False
+		
+	fh_decode = open(fn_decode, 'w')
+	fh_decode.write(str_decode)
+	
+	return True
+		
+		
+def rebuild_scfile(scfile, scfile_decode, scfile_header) :
+	if check_file_exists(scfile) :
+		os.remove(scfile)
+		
+	h_scfile_decode = open(scfile_decode, 'w')
+	h_scfile_decode.write(scfile_header + '\n')
+	
+	return 0
+			
+#######################################################################################################
+# main entry
+#######################################################################################################
+
+#scfile文件的头部，用于标识scfile文件
+#主要是用于判断文件解密是否正确，解密正确的话，第一行应该为scfile_header的值
+scfile_header = '.SERVERS'
+
+#sc文件各字段的分隔符
+separator = '\t\t'
+
+#定义文件名：
+#	scfile: 加密的服务器信息文件
+#	scfile_decode: 解密后的服务器信息文件
+#	scfile_import_formated: 要导入的服务器配置文件格式化后的文件
+#	scfile_merged: 将格式化后要导入的文件内容与解密后的服务器信息文件内容合并
+#		也就是新的要解密后的服务器信息文件
+
+scfile = '.servers'
+scfile_decode = '.scfile_decode'
+scfile_import_formated = '.scfile_import_formated'
+scfile_merged = '.scfile_merged'
+
+
+#######################################################################################################
+#1. 先检查命令行是否输入了scfile_import：
+#1）	如果输入了，则检查文件是否存在。不存在则打印提示信息，程序退出。
+#2）	如果未输入，则提示输入，可以有三次尝试机会，三次输入错误，提示错误信息，程序退出。
+#3）	第一步完成了scfile_import的输入。
+
+print '\n'
+
+if len(sys.argv) == 1 :		# 未输入scfile_import
+	tries = 0
+	isExists = False
+	while not isExists and tries < 3:			#文件不存在，且不超过3次，则尝试
+		
+		tries += 1
+		scfile_import = raw_input('Please input server configure file: ')
+		isExists = check_file_exists(scfile_import)
+		if isExists :
+			print 'server configuration file will be import: ' + scfile_import + '\n'
+			break
+		else :
+			print 'File "' + scfile_import + '" is not existed.'
+			
+	if tries >= 3 and not isExists :
+		print 'server configuration file path is not correct, please check it.\n'
+		exit(-1)
+		
+else:						# 输入了scfile_import
+	scfile_import = sys.argv[1]
+	print 'server configuration file will be import: ' + scfile_import + '\n'
+	
+	#检查文件是否存在
+	isExists = check_file_exists(scfile_import)
+	if not isExists :
+		print 'server configuration file path is not correct, please check it.\n'
+		exit(-1)
+
+#######################################################################################################
+#2. 处理scfile_import，逐行读入并分析格式是否正确，导入正确的记录到scfile_import_formated
+#如果是正确的格式，则导入到scfile_import_formated，如果格式错误则给出提示，并丢弃配置信息
+#并生成scfile_import_formated，scfile_import_formated为格式化后要导入的服务器配置信息
+# 第二步完成scfile_import_formated文件的生成
+
+h_scfile_import = open(scfile_import, 'r')
+h_scfile_import_formated = open(scfile_import_formated, 'w')
+
+line_num = 0
+
+for line in h_scfile_import :
+	server_properties = line.split()
+	
+	isOK = check_server_properties(server_properties)
+	if not isOK :	
+		print 'server ' + server_properties[0] + ' configure Error'
+		continue
+		
+	new_line = separator.join(server_properties)
+	h_scfile_import_formated.write(new_line + '\n')
+	line_num += 1
+
+h_scfile_import.close()
+h_scfile_import_formated.close()
+
+# 显示格式化后的服务器配置信息
+h_scfile_import_formated = open(scfile_import_formated, 'r')
+str_scfile_import_formated = h_scfile_import_formated.read()
+
+print 'Below server configuration will be import : \n'
+print str_scfile_import_formated
+print 'Total ', line_num, 'server configuration will be import.'
+
+
+#######################################################################################################
+#3. 解密scfile，将解密后的信息保存到文件scfile_decode
+#首先判断scfile是否存在，如果存在则解密
+#如果不存在直接生成scfile_decode，scfile_decode只包含scfile_header信息
+
+#判断scfile文件是否存在
+isRebuild = False
+isExists = check_file_exists(scfile)
+
+if isExists :				# scfile存在
+	
+	# 需要密码，检查密码是否正确
+	tries = 0
+	isOK = False
+	
+	while not isOK and tries < 3:
+		tries += 1
+		passwd_input = getpass.getpass('Please input password: ')
+		
+		if len(passwd_input) > 0 :
+			isOK = decode_scfile(scfile, scfile_decode, passwd_input)
+			if not isOK :			# 解密文件失败
+				print 'Password error or the server configuration file is crupted, please try again.\n'
+				continue
+		else :
+			print 'Password is null, please input again.'
+			
+	if not isOK and tries >= 3 :
+		print 'Try password more than three times, if you forget your password, you can REBUILD SCFILE,'
+		result = raw_input('Would you like to rebuild scfile (Yes/No) ? [Yes] : ')
+		if 0 ==len(result) or 'YES' == result.upper() or 'Y' == result.upper() :
+			rebuild_scfile(scfile, scfile_decode, scfile_header)
+			isRebuild = True
+		else :
+			print 'You choose not rebuild scfile.'
+			exit(-1)
+			
+	passwd = passwd_input
+
+else :			#文件scfile不存在，则直接生成scfile_decode
+	rebuild_scfile(scfile, scfile_decode, scfile_header)
+	isRebuild = True
+
+#######################################################################################################
+#4. 合并scfile_decode与scfile_import_formated文件
+
+if not check_file_exists(scfile_decode) or not check_file_exists(scfile_import_formated) :
+	print 'Error: file ' + scfile_decode + ' or file ' + scfile_import_formated + 'does not exists!'
+	exit(-1)
+	
+h_scfile_decode = open(scfile_decode, 'a')
+h_scfile_import_formated = open(scfile_import_formated, 'r')
+
+str = h_scfile_import_formated.read()
+h_scfile_decode.write(str)
+
+h_scfile_decode.close()
+h_scfile_import_formated.close()
+
+h_scfile_decode = open(scfile_decode, 'r')
+str = h_scfile_decode.read()
+
+print 'Server configuration list: \n'
+print str
+
+h_scfile_decode.close()
+
+#######################################################################################################
+#5. 加密文件.scfile_decode，生成scfile，在加密文件前，需要用户输入一个密码，用于加密
+
+if isRebuild :
+	##设置密码
+	tries = 0
+	isConfirmed = False
+	
+	while not isConfirmed and tries < 3:
+		tries += 1
+		print 'Please setup a password for your server configuration,'
+		first_passwd = getpass.getpass('Please input password: ')
+		
+		# check password
+		isOK = check_password(first_passwd)
+		if not isOK:
+			print 'Password does not meet the requirements.'
+			print 'Password character is more than 6.'
+			continue
+		
+		confirm_passwd = getpass.getpass('Please input CONFIRM password: ')
+		isConfirmed = (first_passwd == confirm_passwd)
+		if isConfirmed:
+			passwd = confirm_passwd
+			print 'success to setup password.'
+			break
+		else:
+			print 'Twice password did not match.'
+	
+	
+	if tries >= 3 or not isConfirmed :
+		print 'password tried more than three times, please check your password.'
+		exit(-1)
+		
+#######################################################################################################
+#5. 加密文件.scfile_decode，生成scfile
+
+encode_scfile(scfile_decode, scfile, passwd)
+	
+#######################################################################################################
+#6. 删除临时文件: scfile_decode, scfile_import_formated
+
+if check_file_exists(scfile_decode) :
+	os.remove(scfile_decode)
+
+if check_file_exists(scfile_import_formated) :
+	os.remove(scfile_import_formated)
+
+
