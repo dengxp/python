@@ -2,6 +2,9 @@
 # encoding=utf-8
 
 import sys, os, getpass, struct
+
+SCFILE_HEADER = '.SERVERS'
+SEPARATOR = '\t\t'
 			
 #######################################################################################################
 # 检查密码是否符合要求
@@ -128,7 +131,8 @@ def decode_scfile(fn_encode, fn_decode, key) :
 	str_encode= fh_encode.read()
 	str_decode = decode_string(str_encode, key)
 	str_decode_list = str_decode.split('\n')
-	if str_decode_list[0] <> scfile_header :
+
+	if str_decode_list[0] <> SCFILE_HEADER :
 		print 'File ' + fn_encode + 'decode Error!'
 		return False
 		
@@ -136,14 +140,36 @@ def decode_scfile(fn_encode, fn_decode, key) :
 	fh_decode.write(str_decode)
 	
 	return True
+
+def decode_scfile_for_list(fn_encode, key) :
+	if not check_file_exists(fn_encode) :
+		print 'File ' + fn_encode + ' does not exists!'
+		return -1
+		
+	if len(key) < 1 :
+		print 'The key is null.'
+		return -2
+
+	fh_encode = open(fn_encode, 'r')
+	str_encode= fh_encode.read()
+	str_decode = decode_string(str_encode, key)
+	str_decode_list = str_decode.split('\n')
+
+	if str_decode_list[0] <> SCFILE_HEADER :
+		#print 'File ' + fn_encode + ' decode Error!'
+		print 'The PASSWORD is error!'
+		return False
+
+	del str_decode_list[0]
+	return str_decode_list		
 		
 		
-def rebuild_scfile(scfile, scfile_decode, scfile_header) :
+def rebuild_scfile(scfile, scfile_decode, SCFILE_HEADER) :
 	if check_file_exists(scfile) :
 		os.remove(scfile)
 		
 	h_scfile_decode = open(scfile_decode, 'w')
-	h_scfile_decode.write(scfile_header + '\n')
+	h_scfile_decode.write(SCFILE_HEADER + '\n')
 	
 	return 0
 

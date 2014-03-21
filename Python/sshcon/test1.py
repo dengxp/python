@@ -1,10 +1,9 @@
 #!/usr/bin/python
+# encoding=utf-8
 
-import sys
+from sshconlib import *
 
-if len(sys.argv) < 3 or len(sys.argv) > 4:
-    print 'Usage: python', sys.argv[0], '[encode | decode] filename [key]'
-    exit(1)
-if sys.argv[1] not in ('encode', 'decode'):
-    print 'Usage: python', sys.argv[0], '[encode | decode] filename [key]'
-    exit(1)
+str_aaa = ['abc', abcd'
+str_search = 'dbcd'
+
+print len(str_aaa and str_search)

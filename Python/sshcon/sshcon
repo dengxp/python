@@ -4,13 +4,137 @@
 import sys
 from sshconlib import *
 
-#conf_path = 
-#if len(argv) > 1 :
-#	server_desc = argv[1]
+#######################################################################################################
+# 显示标题
+def display_title() :
+	print '\n'
+	print ' '.ljust(4, ' ') + 'Seq No'.ljust(8, ' ') + 'Server Name'.ljust(28, ' ') + 'IP Address'.ljust(18, ' ') + 'Port'.ljust(10, ' ') + 'User Name'.ljust(16, ' ')
+	print '-'.ljust(84, '-')
 
 #######################################################################################################
-# 1. 先解密scfile，然后在解密的字符串里搜索server_desc
+# 显示服务器配置列表
+#######################################################################################################
+def display_sc_list(sc_list) :
+	# 显示标题
+	display_title()
+	
+	count = 1
+
+	for sc in sc_list :
+		sc_var = sc.split(SEPARATOR)
+
+		del sc_var[len(sc_var) - 1 ]
+		
+		if 4 == len(sc_var) :
+			print ' '.ljust(4, ' ') + str(count).ljust(8, ' ') +  sc_var[0].ljust(28, ' ') + sc_var[1].ljust(18, ' ') + sc_var[2].ljust(10, ' ') + sc_var[3]
+
+		count += 1
+
+	print '\n'
+
+	return True
+
+def check_sc_select(server_desc) :
+	if server_desc.isdigit() :
+		print 'it is NUBER'
+		return 1		# means Number, Seq No
+
+	result = 3
+	for c in server_desc :
+		if c.isdigit() :
+			result = 1
+			continue
+		elif c == '.' :
+			result = 2
+			break
+		else :
+			result = 3
+			break
+
+	return result
+
+#######################################################################################################
+# main entry
+#######################################################################################################
+
+if len(sys.argv) > 1 :
+	server_desc = sys.argv[1]
+
+#######################################################################################################
+# 1. 如果命令行未输入服务器信息，则先解密scfile，列出所有服务器配置信息
+
+scfile = '.servers'
+
+# 提示输入密码
+#passwd_input = getpass.getpass('Please input password: ')
+passwd_input = 'abc123'
+
+# 进行解密
+sc_list = decode_scfile_for_list(scfile, passwd_input)
+if not sc_list :
+	print 'Failed to decode the server configuration file !'
+	exit(-1)
+
+sc_seq_no = []
+sc_server_name = []
+sc_ip = []
+
+for sc in sc_list :
+	sc_var = sc.split(SEPARATOR)
+	if len(sc_var) >= 3 :
+		sc_seq_no.append(sc_var[0])
+		sc_server_name.append(sc_var[1])
+		sc_ip.append(sc_var[2])
+		
+# 显示服务器列表
+display_sc_list(sc_list)
+
+#######################################################################################################
+# 提示输入服务器配置信息
+
+value_input = ''
+tries = 0
+
+print '请输入序号、服务器名称或者IP地址(如果输入纯数字，则当成序号;'
+print '如果包含数字和点号"."，则当成IP地址; 如果包含字符，则当成服务器名称),'
+print '输入q、quit、exit退出。'
+
+while not value_input and tries < 3:
+	value_input = raw_input('请输入:')
+
+	if not value_input :
+		print '您未输入。请输入序号、服务器名称或者IP地址。'
+	elif 'Q' == value_input.upper() or 'QUIT' == value_input.upper() or 'EXIT' == value_input.upper() :
+		exit(0)
+
+	# 判断用户输入是序号、服务器名称还是IP地址
+	result = check_sc_select(value_input)
+	if len(value_input) == 1 and result <> 1 :
+		if result == 2 :		# 纯数字
+			print '您输入的IP地址太短，请重新输入。'
+		if result == 3 :
+			print '您输入的服务器名称太短，请重新输入。'
+
+		value_input = ''
+		tries += 1
+		continue
 
 
+	# 用户输入服务器配置后，如果找到多项配置，则继续提示用户选择
+	# 如果是唯一项，则执行ssh远程连接
+
+	if result == 1 :
+		for seqno in sc_seq_no :
+			if value_input in seqno :
+				
+	elif result == 2 :
+	elif result == 3 :
+	print sc_list.count(value_input)	
+
+	tries += 1
+
+if not value_input and tries >= 3 :
+	print '您超过三次未输入任何字符，程序退出。'
+	exit(-1)
 
 
