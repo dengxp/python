@@ -17,14 +17,14 @@ def display_title() :
 def display_sc_list(sc_list) :
 	# 显示标题
 	display_title()
-	
+
 	count = 1
 
 	for sc in sc_list :
 		sc_var = sc.split(SEPARATOR)
 
 		del sc_var[len(sc_var) - 1 ]
-		
+
 		if 4 == len(sc_var) :
 			print ' '.ljust(4, ' ') + str(count).ljust(8, ' ') +  sc_var[0].ljust(28, ' ') + sc_var[1].ljust(18, ' ') + sc_var[2].ljust(10, ' ') + sc_var[3]
 
@@ -34,9 +34,11 @@ def display_sc_list(sc_list) :
 
 	return True
 
+#######################################################################################################
+# 判断用户输入的是序号、服务器名称还是IP地址
+#######################################################################################################
 def check_sc_select(server_desc) :
 	if server_desc.isdigit() :
-		print 'it is NUBER'
 		return 1		# means Number, Seq No
 
 	result = 3
@@ -70,29 +72,31 @@ scfile = '.servers'
 passwd_input = 'abc123'
 
 # 进行解密
-sc_list = decode_scfile_for_list(scfile, passwd_input)
-if not sc_list :
+sc_list_all = decode_scfile_for_list(scfile, passwd_input)
+if not sc_list_all :
 	print 'Failed to decode the server configuration file !'
 	exit(-1)
 
-sc_seq_no = []
+#sc_seq_no = []
 sc_server_name = []
 sc_ip = []
-
-for sc in sc_list :
+for sc in sc_list_all :
 	sc_var = sc.split(SEPARATOR)
 	if len(sc_var) >= 3 :
-		sc_seq_no.append(sc_var[0])
-		sc_server_name.append(sc_var[1])
-		sc_ip.append(sc_var[2])
-		
+		#sc_seq_no.append(sc_var[0])
+		sc_server_name.append(sc_var[0])
+		sc_ip.append(sc_var[1])
+
+
 # 显示服务器列表
-display_sc_list(sc_list)
+print sc_list_all
+display_sc_list(sc_list_all)
 
 #######################################################################################################
 # 提示输入服务器配置信息
 
 value_input = ''
+sc_list_select = []
 tries = 0
 
 print '请输入序号、服务器名称或者IP地址(如果输入纯数字，则当成序号;'
@@ -100,7 +104,7 @@ print '如果包含数字和点号"."，则当成IP地址; 如果包含字符，
 print '输入q、quit、exit退出。'
 
 while not value_input and tries < 3:
-	value_input = raw_input('请输入:')
+	value_input = raw_input('请输入: ')
 
 	if not value_input :
 		print '您未输入。请输入序号、服务器名称或者IP地址。'
@@ -123,14 +127,28 @@ while not value_input and tries < 3:
 	# 用户输入服务器配置后，如果找到多项配置，则继续提示用户选择
 	# 如果是唯一项，则执行ssh远程连接
 
-	if result == 1 :
-		for seqno in sc_seq_no :
-			if value_input in seqno :
+	if result == 1 :			# 用户输入的是纯数字，序号
+		for i in range(0, len(sc_list_all)) :
+			if i + 1 == int(value_input) :
+				sc_list_select.append(sc_list_all[i])
 				
 	elif result == 2 :
+		print result
 	elif result == 3 :
-	print sc_list.count(value_input)	
+		print result
+		
+	#display_sc_list(sc_list_select)
+	print 'len(sc_list_select):',len(sc_list_select)
 
+	if len(sc_list_select) == 0 :
+		print '您输入的服务器配置信息未找到.'
+	elif len(sc_list_select) == 1 :
+		print '连接服务器...'
+		display_sc_list(sc_list_select)
+	else :		# 找到多条记录
+		print '找到多条记录'
+		display_sc_list(sc_list_select)
+	
 	tries += 1
 
 if not value_input and tries >= 3 :

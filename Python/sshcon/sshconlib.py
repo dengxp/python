@@ -141,6 +141,11 @@ def decode_scfile(fn_encode, fn_decode, key) :
 	
 	return True
 
+#######################################################################################################
+# 解密scfile文件, 返回一个list
+# 输入参数: fn_encode: 待解密的文件名
+# 返回值: list，解密后的list
+#######################################################################################################
 def decode_scfile_for_list(fn_encode, key) :
 	if not check_file_exists(fn_encode) :
 		print 'File ' + fn_encode + ' does not exists!'
@@ -160,8 +165,11 @@ def decode_scfile_for_list(fn_encode, key) :
 		print 'The PASSWORD is error!'
 		return False
 
-	del str_decode_list[0]
-	return str_decode_list		
+	for str in str_decode_list :
+		if str.count(SEPARATOR) < 4 :
+			str_decode_list.remove(str)
+			
+	return str_decode_list
 		
 		
 def rebuild_scfile(scfile, scfile_decode, SCFILE_HEADER) :

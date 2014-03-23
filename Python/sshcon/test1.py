@@ -3,7 +3,11 @@
 
 from sshconlib import *
 
-str_aaa = ['abc', abcd'
-str_search = 'dbcd'
+i = 0
 
-print len(str_aaa and str_search)
+if result == 1 :			# 
+	for i in range(0, len(sc_seq_no) :
+		if sc
+		
+elif result == 2 :
+elif result == 3 :
