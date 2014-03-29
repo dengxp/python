@@ -5,57 +5,6 @@ import sys
 from sshconlib import *
 
 #######################################################################################################
-# 显示标题
-def display_title() :
-	print '\n'
-	print ' '.ljust(4, ' ') + 'Seq No'.ljust(8, ' ') + 'Server Name'.ljust(28, ' ') + 'IP Address'.ljust(18, ' ') + 'Port'.ljust(10, ' ') + 'User Name'.ljust(16, ' ')
-	print '-'.ljust(84, '-')
-
-#######################################################################################################
-# 显示服务器配置列表
-#######################################################################################################
-def display_sc_list(sc_list) :
-	# 显示标题
-	display_title()
-
-	count = 1
-
-	for sc in sc_list :
-		sc_var = sc.split(SEPARATOR)
-
-		del sc_var[len(sc_var) - 1 ]
-
-		if 4 == len(sc_var) :
-			print ' '.ljust(4, ' ') + str(count).ljust(8, ' ') +  sc_var[0].ljust(28, ' ') + sc_var[1].ljust(18, ' ') + sc_var[2].ljust(10, ' ') + sc_var[3]
-
-		count += 1
-
-	print '\n'
-
-	return True
-
-#######################################################################################################
-# 判断用户输入的是序号、服务器名称还是IP地址
-#######################################################################################################
-def check_sc_select(server_desc) :
-	if server_desc.isdigit() :
-		return 1		# means Number, Seq No
-
-	result = 3
-	for c in server_desc :
-		if c.isdigit() :
-			result = 1
-			continue
-		elif c == '.' :
-			result = 2
-			break
-		else :
-			result = 3
-			break
-
-	return result
-
-#######################################################################################################
 # main entry
 #######################################################################################################
 
@@ -77,26 +26,16 @@ if not sc_list_all :
 	print 'Failed to decode the server configuration file !'
 	exit(-1)
 
-#sc_seq_no = []
-sc_server_name = []
-sc_ip = []
-for sc in sc_list_all :
-	sc_var = sc.split(SEPARATOR)
-	if len(sc_var) >= 3 :
-		#sc_seq_no.append(sc_var[0])
-		sc_server_name.append(sc_var[0])
-		sc_ip.append(sc_var[1])
-
 
 # 显示服务器列表
-print sc_list_all
 display_sc_list(sc_list_all)
 
 #######################################################################################################
 # 提示输入服务器配置信息
 
 value_input = ''
-sc_list_select = []
+sc_list_select1 = sc_list_all
+sc_list_select2 = []
 tries = 0
 
 print '请输入序号、服务器名称或者IP地址(如果输入纯数字，则当成序号;'
@@ -104,6 +43,17 @@ print '如果包含数字和点号"."，则当成IP地址; 如果包含字符，
 print '输入q、quit、exit退出。'
 
 while not value_input and tries < 3:
+	
+	#sc_seq_no = []
+	sc_server_name = []
+	sc_ip = []
+	for sc in sc_list_select1 :
+		sc_var = sc.split(SEPARATOR)
+		if len(sc_var) >= 3 :
+			#sc_seq_no.append(sc_var[0])
+			sc_server_name.append(sc_var[0])
+			sc_ip.append(sc_var[1])
+		
 	value_input = raw_input('请输入: ')
 
 	if not value_input :
@@ -113,6 +63,7 @@ while not value_input and tries < 3:
 
 	# 判断用户输入是序号、服务器名称还是IP地址
 	result = check_sc_select(value_input)
+	
 	if len(value_input) == 1 and result <> 1 :
 		if result == 2 :		# 纯数字
 			print '您输入的IP地址太短，请重新输入。'
@@ -128,31 +79,38 @@ while not value_input and tries < 3:
 	# 如果是唯一项，则执行ssh远程连接
 
 	if result == 1 :			# 用户输入的是纯数字，序号
-		for i in range(0, len(sc_list_all)) :
+		for i in range(0, len(sc_list_select1)) :
 			if i + 1 == int(value_input) :
-				sc_list_select.append(sc_list_all[i])
+				sc_list_select2.append(sc_list_select1[i])
 				
-	elif result == 2 :
-		print result
+	elif result == 2 :		# 输入的是IP地址
+		for i in range(0, len(sc_ip)) :
+			if value_input in sc_ip[i] :
+				sc_list_select2.append(sc_list_select1[i])
+				
 	elif result == 3 :
-		print result
-		
-	#display_sc_list(sc_list_select)
-	print 'len(sc_list_select):',len(sc_list_select)
+		for i in range(0, len(sc_server_name)) :
+			if value_input in sc_server_name[i] :
+				sc_list_select2.append(sc_list_select1[i])
 
-	if len(sc_list_select) == 0 :
+	if len(sc_list_select2) == 0 :
 		print '您输入的服务器配置信息未找到.'
-	elif len(sc_list_select) == 1 :
-		print '连接服务器...'
-		display_sc_list(sc_list_select)
+	elif len(sc_list_select2) == 1 :
+		print '\n连接到服务器: '
+		display_sc_list(sc_list_select2)
+		
+		do_connect(sc_list_select2)
+		
 	else :		# 找到多条记录
-		print '找到多条记录'
-		display_sc_list(sc_list_select)
+		print '\n找到多条记录: '
+		display_sc_list(sc_list_select2)
+		sc_list_select1 = sc_list_select2
+		sc_list_select2 = []
+		value_input = ''
+		tries -= 1
 	
 	tries += 1
 
 if not value_input and tries >= 3 :
 	print '您超过三次未输入任何字符，程序退出。'
 	exit(-1)
-
-

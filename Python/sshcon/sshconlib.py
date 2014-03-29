@@ -2,6 +2,7 @@
 # encoding=utf-8
 
 import sys, os, getpass, struct
+import pexpect
 
 SCFILE_HEADER = '.SERVERS'
 SEPARATOR = '\t\t'
@@ -180,4 +181,149 @@ def rebuild_scfile(scfile, scfile_decode, SCFILE_HEADER) :
 	h_scfile_decode.write(SCFILE_HEADER + '\n')
 	
 	return 0
+	
+#######################################################################################################
+# 显示标题
+def display_title() :
+	print '\n'
+	print ' '.ljust(4, ' ') + 'Seq No'.ljust(8, ' ') + 'Server Name'.ljust(28, ' ') + 'IP Address'.ljust(18, ' ') + 'Port'.ljust(10, ' ') + 'User Name'.ljust(16, ' ')
+	print '-'.ljust(84, '-')
 
+#######################################################################################################
+# 显示服务器配置列表
+#######################################################################################################
+def display_sc_list(sc_list) :
+	# 显示标题
+	display_title()
+
+	count = 1
+
+	for sc in sc_list :
+		sc_var = sc.split(SEPARATOR)
+
+		del sc_var[len(sc_var) - 1 ]
+
+		if 4 == len(sc_var) :
+			print ' '.ljust(4, ' ') + str(count).ljust(8, ' ') +  sc_var[0].ljust(28, ' ') + sc_var[1].ljust(18, ' ') + sc_var[2].ljust(10, ' ') + sc_var[3]
+
+		count += 1
+
+	print '\n'
+
+	return True
+
+#######################################################################################################
+# 判断用户输入的是序号、服务器名称还是IP地址
+#######################################################################################################
+def check_sc_select(server_desc) :
+	if server_desc.isdigit() :
+		return 1		# means Number, Seq No
+
+	result = 3
+	for c in server_desc :
+		if c.isdigit() :
+			result = 1
+			continue
+		elif c == '.' :
+			result = 2
+			break
+		else :
+			result = 3
+			break
+
+	return result
+
+#######################################################################################################
+# 连接服务器
+#######################################################################################################
+def do_connect(server_conf) :
+	if len(server_conf) > 1 :
+		print '服务器配置信息错误，程序返回'
+		return -1
+		
+	# 把server_conf中的信息填入相关变量
+	sc_var = server_conf[0].split(SEPARATOR)
+	server_name = sc_var[0]
+	host = sc_var[1]
+	port = sc_var[2]
+	user = sc_var[3]
+	passwd = sc_var[4]
+	
+	# 调用ssh_connect远程连接服务器
+	ssh_connect2(host, port, user, passwd)
+		
+	#docon ip 
+
+#######################################################################################################
+# ssh连接服务器
+#######################################################################################################
+
+def ssh_connect(host, port, user, passwd) :
+	ssh_newkey = 'Are you sure you want to continue connecting'
+	ssh = pexpect.spawn('ssh -p %s %s@%s' % (port, user, host))
+	i = ssh.expect([pexpect.TIMEOUT, ssh_newkey, 'password: ', '$'])
+	print 'i : ', i
+	
+	# Timeout
+	if i == 0 :
+		print 'ERROR'
+		print 'SSH could not login. Here is what SSH said: '
+		print ssh.before, ssh.after
+		return None
+		
+	# ssh public key
+	elif i == 1 :
+		ssh.sendline('yes')
+		ssh.expect('password: ')
+		i = ssh.expect([pexpect.TIMEOUT, 'password: '])
+		if i == 0 :	# Timeout
+			print 'ERROR!'
+			print 'SSH could not login. Here is what SSH said: '
+			print ssh.before, ssh.after
+			return None
+			
+	elif i == 2 :
+		ssh.sendline(passwd)
+	
+	elif i == 3 :
+		print 'Success to login!'
+		
+	ssh.interact()
+		
+	return ssh
+	
+#######################################################################################################
+# ssh连接服务器
+# ssh_connect2
+#######################################################################################################
+def ssh_connect2(host, port, user, passwd) :
+	ssh_newkey = 'Are you sure you want to continue connecting'
+	ssh = pexpect.spawn('ssh -p %s %s@%s' % (port, user, host))
+	
+	while True :
+		i = ssh.expect([pexpect.TIMEOUT, ssh_newkey, 'password: ', '$', '#'])
+		
+		# Timeout
+		if i == 0 :
+			print 'ERROR'
+			print 'SSH could not login. Here is what SSH said: '
+			print ssh.before, ssh.after
+			
+			break
+			
+		if i == 1 :
+			ssh.sendline('yes')
+			continue
+		
+		if i == 2 :
+			ssh.sendline(passwd)
+			continue
+			
+	
+		if i == 3 or i == 4 :
+			print 'Success to login!'
+			break
+		
+	ssh.interact()
+	
+	return ssh
