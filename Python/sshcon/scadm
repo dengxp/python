@@ -10,7 +10,7 @@ from scadmlib import *
 
 #scfile文件的头部，用于标识scfile文件
 #主要是用于判断文件解密是否正确，解密正确的话，第一行应该为scfile_header的值
-scfile_header = '.SERVERS'
+scfile_header = '.SERVERS_HEADER'
 
 #sc文件各字段的分隔符
 separator = '\t\t'
@@ -29,7 +29,7 @@ scfile_merged = '.scfile_merged'
 
 
 #######################################################################################################
-#1. 先检查命令行是否输入了scfile_import：
+#1. 先检查命令行是否输入了待导入的配置文件 scfile_import：
 #1）	如果输入了，则检查文件是否存在。不存在则打印提示信息，程序退出。
 #2）	如果未输入，则提示输入，可以有三次尝试机会，三次输入错误，提示错误信息，程序退出。
 #3）	第一步完成了scfile_import的输入。
